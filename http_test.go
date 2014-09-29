@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -78,6 +79,38 @@ func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	return m.resp, m.err
+}
+
+func TestNewRequest(t *testing.T) {
+	userAgent := "some-agent"
+	var req *http.Request
+	var err error
+
+	Convey("When I use #newRequest to create a GET request with params", t, func() {
+		params := url.Values{}
+		params.Set("hello", "world")
+		req, err = newRequest(userAgent, "GET", "http://www.google.com", &params, nil)
+
+		Convey("Then I expect no errors", func() {
+			So(err, ShouldBeNil)
+		})
+
+		Convey("And I expect the user agent to be set to what I provided", func() {
+			So(req.Header.Get("User-Agent"), ShouldEqual, userAgent)
+		})
+
+		Convey("And I expect the params to be merged with the url provided", func() {
+			So(req.URL.String(), ShouldEqual, "http://www.google.com?hello=world")
+		})
+	})
+
+	Convey("When I use #newRequest to create a request with an empty path", t, func() {
+		_, err = newRequest(userAgent, "GET", "", nil, nil)
+
+		Convey("Then I expect the EmptyPathErr", func() {
+			So(err, ShouldEqual, EmptyPathErr)
+		})
+	})
 }
 
 func TestGet(t *testing.T) {
@@ -161,10 +194,10 @@ func TestGet(t *testing.T) {
 	})
 }
 
-func TestMakeTransporterFunc(t*testing.T) {
+func TestMakeTransporterFunc(t *testing.T) {
 	Convey("makeTransporterFunc should return a &http.Transport{}", t, func() {
-			So(makeTransporterFunc(), ShouldResemble, &http.Transport{})
-		})
+		So(makeTransporterFunc(), ShouldResemble, &http.Transport{})
+	})
 }
 
 func TestPost(t *testing.T) {

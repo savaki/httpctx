@@ -12,7 +12,7 @@ type transporter interface {
 	CancelRequest(*http.Request)
 }
 
-type AuthFunc func(*http.Request)
+type AuthFunc func(*http.Request) *http.Request
 
 type ErrorMessage struct {
 	StatusCode int

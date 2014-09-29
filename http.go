@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"code.google.com/p/go.net/context"
 	"encoding/json"
-	"fmt"
-	"github.com/savaki/stormpath-go/auth"
 	"io"
 	"net/http"
 	"net/url"
+	"errors"
 )
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
 var newTransporter func() transporter = makeTransporterFunc
+
+var (
+	EmptyPathErr = errors.New("unable to construct a request from an empty url")
+)
 
 func makeTransporterFunc() transporter {
 	return &http.Transport{}
@@ -25,7 +28,7 @@ type HttpClient interface {
 	Delete(ctx context.Context, path string) error
 }
 
-func NewClient(authFunc auth.AuthFunc) HttpClient {
+func NewClient(authFunc AuthFunc) HttpClient {
 	return &client{
 		authFunc:  authFunc,
 		UserAgent: "httpctx-go:0.1",
@@ -33,49 +36,24 @@ func NewClient(authFunc auth.AuthFunc) HttpClient {
 }
 
 type client struct {
-	authFunc  auth.AuthFunc
+	authFunc  AuthFunc
 	UserAgent string
 }
 
 func (h *client) Get(ctx context.Context, path string, params *url.Values, v interface{}) error {
-	u, err := url.Parse(path)
-	if err != nil {
-		return err
-	}
-
-	if params != nil {
-		u.RawQuery = params.Encode()
-	}
-
-	req, _ := http.NewRequest("GET", u.String(), nil)
-	return h.Do(ctx, req, v)
+	return h.Do(ctx, "GET", path, params, nil, v)
 }
 
 func (h *client) Post(ctx context.Context, path string, data interface{}, v interface{}) error {
-	body, err := toJson(data)
-	if err != nil {
-		return err
-	}
-
-	req, _ := http.NewRequest("POST", path, body)
-	req.Header.Set("Content-Type", "application/json")
-	return h.Do(ctx, req, v)
+	return h.Do(ctx, "POST", path, nil, data, v)
 }
 
 func (h *client) Put(ctx context.Context, path string, data interface{}, v interface{}) error {
-	body, err := toJson(data)
-	if err != nil {
-		return err
-	}
-
-	req, _ := http.NewRequest("PUT", path, body)
-	req.Header.Set("Content-Type", "application/json")
-	return h.Do(ctx, req, v)
+	return h.Do(ctx, "PUT", path, nil, data, v)
 }
 
 func (h *client) Delete(ctx context.Context, path string) error {
-	req, _ := http.NewRequest("DELETE", path, nil)
-	return h.Do(ctx, req, nil)
+	return h.Do(ctx, "DELETE", path, nil, nil, nil)
 }
 
 type response struct {
@@ -83,18 +61,36 @@ type response struct {
 	err  error
 }
 
-func (h *client) Do(ctx context.Context, req *http.Request, v interface{}) error {
-	if req.URL.String() == "" {
-		return fmt.Errorf("invalid attempt to %s to an empty url", req.Method)
+func newRequest(userAgent, method, path string, params *url.Values, payload interface{}) (*http.Request, error) {
+	if path == "" {
+		return nil, EmptyPathErr
 	}
 
-	req.Header.Set("User-Agent", h.UserAgent)
+	// marshal body if data != nil
+	body, err := toJson(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	// update path with params if params != nil
+	_path := path
+	if params != nil {
+		uri, err := url.Parse(path)
+		if err != nil {
+			return nil, err
+		}
+
+		uri.RawQuery = params.Encode()
+		_path = uri.String()
+	}
+
+	req, _ := http.NewRequest(method, _path, body)
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
+	return req, nil
+}
 
-	if h.authFunc != nil {
-		h.authFunc(req)
-	}
-
+func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Response, err error) {
 	// send the request on a new custom transport; result will be pumped to the ch channel
 	tr := newTransporter()
 	ch := make(chan response, 1)
@@ -105,48 +101,49 @@ func (h *client) Do(ctx context.Context, req *http.Request, v interface{}) error
 		ch <- response{resp: resp, err: err}
 	}()
 
-	// wait for either response or the request to be canceled
-	var resp *http.Response
-	var err error
-
 	select {
 	case <-ctx.Done():
-		fmt.Println("tr.CancelRequest(req)")
 		tr.CancelRequest(req)
 		<-ch
-		return ctx.Err()
+		err = ctx.Err()
+		return
 	case r := <-ch:
-		fmt.Println("resp = r.resp")
 		resp = r.resp
 		err = r.err
 	}
+	return
+}
 
+func (h *client) Do(ctx context.Context, method, path string, params *url.Values, payload interface{}, v interface{}) error {
+	// 1. create a new request
+	req, err := newRequest(h.UserAgent, method, path, params, payload)
+	if err != nil {
+		return err
+	}
+
+	// 2. perform whatever authorization may be required
+	if h.authFunc != nil {
+		req = h.authFunc(req)
+	}
+
+	// 3. execute the request
+	resp, err := h.handle(ctx, req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// manually follow a 302 redirect
+	// 4. manually follow a 302 redirect
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
 		return h.Get(ctx, location, nil, v)
 	}
 
-	// process this request
-	buf := bytes.NewBuffer([]byte{})
-	io.Copy(buf, resp.Body)
-	data := buf.Bytes()
+	// 5. process the results
+	if data := toByteArray(resp.Body); !ok(resp.StatusCode) {
+		err = &ErrorMessage{StatusCode: resp.StatusCode, Data: data}
 
-	if !ok(resp.StatusCode) {
-		errMsg := &ErrorMessage{StatusCode: resp.StatusCode, Data: data}
-		err = json.Unmarshal(data, errMsg)
-		if err != nil {
-			return err
-		}
-		return errMsg
-	}
-
-	if v != nil {
+	} else if v != nil {
 		err = json.Unmarshal(data, v)
 	}
 
@@ -156,4 +153,10 @@ func (h *client) Do(ctx context.Context, req *http.Request, v interface{}) error
 func ok(statusCode int) bool {
 	firstDigit := statusCode / 100
 	return firstDigit == 2
+}
+
+func toByteArray(body io.Reader) []byte {
+	buf := bytes.NewBuffer([]byte{})
+	io.Copy(buf, body)
+	return buf.Bytes()
 }
