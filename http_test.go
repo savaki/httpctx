@@ -130,7 +130,7 @@ func TestGet(t *testing.T) {
 
 		Convey("When I call GET", func() {
 			started = time.Now().UnixNano()
-			err = NewClient(nil).Get(context.Background(), "http://www.google.com", nil, &result)
+			err = NewClient().Get(context.Background(), "http://www.google.com", nil, &result)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time >= delay", func() {
@@ -147,7 +147,7 @@ func TestGet(t *testing.T) {
 
 			started = time.Now().UnixNano()
 			go func() { cancel() }()
-			err = NewClient(nil).Get(ctx, "http://www.google.com", nil, nil)
+			err = NewClient().Get(ctx, "http://www.google.com", nil, nil)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time < delay", func() {
@@ -168,7 +168,7 @@ func TestGet(t *testing.T) {
 
 		Convey("When I call GET", func() {
 			started = time.Now().UnixNano()
-			err = NewClient(nil).Get(context.Background(), "http://www.google.com", nil, &result)
+			err = NewClient().Get(context.Background(), "http://www.google.com", nil, &result)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time >= delay", func() {
@@ -216,7 +216,7 @@ func TestPost(t *testing.T) {
 
 		Convey("When I call POST", func() {
 			started = time.Now().UnixNano()
-			err = NewClient(nil).Post(context.Background(), "http://www.google.com", body, &results)
+			err = NewClient().Post(context.Background(), "http://www.google.com", body, &results)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time >= delay", func() {
@@ -233,7 +233,7 @@ func TestPost(t *testing.T) {
 
 			started = time.Now().UnixNano()
 			go func() { cancel() }()
-			err = NewClient(nil).Post(ctx, "http://www.google.com", nil, nil)
+			err = NewClient().Post(ctx, "http://www.google.com", nil, nil)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time < delay", func() {
@@ -262,7 +262,7 @@ func TestPut(t *testing.T) {
 
 		Convey("When I call POST", func() {
 			started = time.Now().UnixNano()
-			err = NewClient(nil).Put(context.Background(), "http://www.google.com", nil, nil)
+			err = NewClient().Put(context.Background(), "http://www.google.com", nil, nil)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time >= delay", func() {
@@ -275,7 +275,7 @@ func TestPut(t *testing.T) {
 
 			started = time.Now().UnixNano()
 			go func() { cancel() }()
-			err = NewClient(nil).Put(ctx, "http://www.google.com", nil, nil)
+			err = NewClient().Put(ctx, "http://www.google.com", nil, nil)
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time < delay", func() {
@@ -304,7 +304,7 @@ func TestDelete(t *testing.T) {
 
 		Convey("When I call DELETE", func() {
 			started = time.Now().UnixNano()
-			err = NewClient(nil).Delete(context.Background(), "http://www.google.com")
+			err = NewClient().Delete(context.Background(), "http://www.google.com")
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time >= delay", func() {
@@ -317,7 +317,7 @@ func TestDelete(t *testing.T) {
 
 			started = time.Now().UnixNano()
 			go func() { cancel() }()
-			err = NewClient(nil).Delete(ctx, "http://www.google.com")
+			err = NewClient().Delete(ctx, "http://www.google.com")
 			elapsed = time.Now().UnixNano() - started
 
 			Convey("Then I expect response time < delay", func() {
