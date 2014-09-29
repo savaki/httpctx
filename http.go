@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"code.google.com/p/go.net/context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
-	"errors"
 )
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
@@ -105,6 +105,7 @@ func newRequest(userAgent, method, path string, params *url.Values, payload inte
 	req, _ := http.NewRequest(method, _path, body)
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	return req, nil
 }
 
