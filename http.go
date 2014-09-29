@@ -28,7 +28,13 @@ type HttpClient interface {
 	Delete(ctx context.Context, path string) error
 }
 
-func NewClient(authFunc AuthFunc) HttpClient {
+// creates a new HttpClient without authentication
+func NewClient() HttpClient {
+	return WithAuthFunc(nil)
+}
+
+// creates a new HttpClient that uses the specified algorithm for authentication
+func WithAuthFunc(authFunc AuthFunc) HttpClient {
 	return &client{
 		authFunc:  authFunc,
 		UserAgent: "httpctx-go:0.1",
@@ -40,18 +46,30 @@ type client struct {
 	UserAgent string
 }
 
+// path - a fully qualified http(s) path
+// params - an optional pointer to url.Values
+// v - an optional struct instance that we will unmarshal to e.g. json.NewDecoder(...).Decode(v)
 func (h *client) Get(ctx context.Context, path string, params *url.Values, v interface{}) error {
 	return h.Do(ctx, "GET", path, params, nil, v)
 }
 
+// path - a fully qualified http(s) path
+// params - an optional pointer to url.Values
+// data - an optional struct to pass in as json encoded data
+// v - an optional struct instance that we will unmarshal to e.g. json.NewDecoder(...).Decode(v)
 func (h *client) Post(ctx context.Context, path string, data interface{}, v interface{}) error {
 	return h.Do(ctx, "POST", path, nil, data, v)
 }
 
+// path - a fully qualified http(s) path
+// params - an optional pointer to url.Values
+// data - an optional struct to pass in as json encoded data
+// v - an optional struct instance that we will unmarshal to e.g. json.NewDecoder(...).Decode(v)
 func (h *client) Put(ctx context.Context, path string, data interface{}, v interface{}) error {
 	return h.Do(ctx, "PUT", path, nil, data, v)
 }
 
+// path - a fully qualified http(s) path
 func (h *client) Delete(ctx context.Context, path string) error {
 	return h.Do(ctx, "DELETE", path, nil, nil, nil)
 }
