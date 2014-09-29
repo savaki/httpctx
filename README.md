@@ -1,7 +1,7 @@
 httpctx
 =======
 
-[![GoDoc](https://godoc.org/github.com/savaki/httpctx?status.svg)](https://godoc.org/github.com/savaki/httpctx)
+[![GoDoc](https://godoc.org/github.com/savaki/httpctx?status.svg)](https://godoc.org/github.com/savaki/httpctx) ![https://travis-ci.org/savaki/httpctx.svg]()
 
 Provides a json-aware http client that utilizes Google's excellent ```context``` package, [code.google.com/p/go.net/context](http://code.google.com/p/go.net/context).  There's an excellent [blog entry](http://blog.golang.org/context) on the context package [here](http://blog.golang.org/context).
 
