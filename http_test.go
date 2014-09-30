@@ -196,7 +196,7 @@ func TestGet(t *testing.T) {
 
 func TestMakeTransporterFunc(t *testing.T) {
 	Convey("makeTransporterFunc should return a &http.Transport{}", t, func() {
-		So(makeTransporterFunc(), ShouldResemble, &http.Transport{})
+		So(makeTransporterFunc(), ShouldResemble, &http.Transport{DisableKeepAlives: true})
 	})
 }
 

@@ -21,7 +21,9 @@ var (
 )
 
 func makeTransporterFunc() transporter {
-	return &http.Transport{}
+	return &http.Transport{
+		DisableKeepAlives: true,
+	}
 }
 
 type HttpClient interface {
@@ -118,7 +120,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 
 	// send the request on a new custom transport; result will be pumped to the ch channel
 	tr := newTransporter()
-	defer tr.CloseIdleConnections()
+	// defer tr.CloseIdleConnections()
 
 	debug("%s %s", req.Method, req.URL.String())
 
@@ -134,7 +136,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 		err = ctx.Err()
 		return
 	case r := <-ch:
-		tr.CancelRequest(req)
+		// tr.CancelRequest(req)
 		resp = r.resp
 		err = r.err
 	}
