@@ -18,3 +18,11 @@ func toJson(v interface{}) (io.Reader, error) {
 
 	return bytes.NewReader(buffer), nil
 }
+
+type Debugger struct {
+	Data []byte
+}
+
+func (d Debugger) String() string {
+	return string(d.Data)
+}

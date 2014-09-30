@@ -10,6 +10,7 @@ import (
 type transporter interface {
 	RoundTrip(*http.Request) (*http.Response, error)
 	CancelRequest(*http.Request)
+	CloseIdleConnections()
 }
 
 // authorizes a given request; generally you should return the request you are provided, but in cases where you must,

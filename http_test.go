@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"code.google.com/p/go.net/context"
 	"encoding/json"
-	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
 	"net/http"
@@ -60,10 +59,13 @@ func NewMock(resp *http.Response, err error, delay time.Duration) *mockTransport
 func (m *mockTransporter) CancelRequest(req *http.Request) {
 	m.req = req
 	if m.done != nil {
-		fmt.Println("close(m.done)")
 		close(m.done)
 		m.done = nil
 	}
+}
+
+func (m *mockTransporter) CloseIdleConnections() {
+	// intentionally left blank
 }
 
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -73,9 +75,7 @@ func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	select {
 	case <-m.done:
-		fmt.Println("<-m.done")
 	case <-timer.C:
-		fmt.Println("<-timer.C")
 	}
 
 	return m.resp, m.err

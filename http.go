@@ -5,10 +5,13 @@ import (
 	"code.google.com/p/go.net/context"
 	"encoding/json"
 	"errors"
+	. "github.com/savaki/go-debug"
 	"io"
 	"net/http"
 	"net/url"
 )
+
+var debug = Debug("httpctx")
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
 var newTransporter func() transporter = makeTransporterFunc
@@ -115,6 +118,8 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 	ch := make(chan response, 1)
 	defer close(ch)
 
+	debug("%s %s", req.Method, req.URL.String())
+
 	go func() {
 		resp, err := tr.RoundTrip(req)
 		ch <- response{resp: resp, err: err}
@@ -123,6 +128,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 	select {
 	case <-ctx.Done():
 		tr.CancelRequest(req)
+		tr.CloseIdleConnections()
 		<-ch
 		err = ctx.Err()
 		return
