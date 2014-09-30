@@ -113,10 +113,12 @@ func newRequest(userAgent, method, path string, params *url.Values, payload inte
 }
 
 func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Response, err error) {
-	// send the request on a new custom transport; result will be pumped to the ch channel
-	tr := newTransporter()
 	ch := make(chan response, 1)
 	defer close(ch)
+
+	// send the request on a new custom transport; result will be pumped to the ch channel
+	tr := newTransporter()
+	defer tr.CloseIdleConnections()
 
 	debug("%s %s", req.Method, req.URL.String())
 
@@ -128,11 +130,11 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 	select {
 	case <-ctx.Done():
 		tr.CancelRequest(req)
-		tr.CloseIdleConnections()
 		<-ch
 		err = ctx.Err()
 		return
 	case r := <-ch:
+		tr.CancelRequest(req)
 		resp = r.resp
 		err = r.err
 	}
