@@ -64,10 +64,6 @@ func (m *mockTransporter) CancelRequest(req *http.Request) {
 	}
 }
 
-func (m *mockTransporter) CloseIdleConnections() {
-	// intentionally left blank
-}
-
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 	timer := time.NewTimer(m.delay)
 	defer timer.Stop()
