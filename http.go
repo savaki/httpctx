@@ -5,10 +5,13 @@ import (
 	"code.google.com/p/go.net/context"
 	"encoding/json"
 	"errors"
+	. "github.com/savaki/go-debug"
 	"io"
 	"net/http"
 	"net/url"
 )
+
+var debug = Debug("httpctx")
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
 var newTransporter func() transporter = makeTransporterFunc
@@ -18,7 +21,9 @@ var (
 )
 
 func makeTransporterFunc() transporter {
-	return &http.Transport{}
+	return &http.Transport{
+		DisableKeepAlives: true,
+	}
 }
 
 type HttpClient interface {
@@ -105,14 +110,18 @@ func newRequest(userAgent, method, path string, params *url.Values, payload inte
 	req, _ := http.NewRequest(method, _path, body)
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	return req, nil
 }
 
 func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Response, err error) {
-	// send the request on a new custom transport; result will be pumped to the ch channel
-	tr := newTransporter()
 	ch := make(chan response, 1)
 	defer close(ch)
+
+	// send the request on a new custom transport; result will be pumped to the ch channel
+	tr := newTransporter()
+
+	debug("%s %s", req.Method, req.URL.String())
 
 	go func() {
 		resp, err := tr.RoundTrip(req)
