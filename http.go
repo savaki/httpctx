@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"code.google.com/p/go.net/context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
-	"errors"
 )
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
@@ -162,7 +162,14 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 		err = &ErrorMessage{StatusCode: resp.StatusCode, Data: data}
 
 	} else if v != nil {
-		err = json.Unmarshal(data, v)
+		switch value := v.(type) {
+		case *[]byte:
+			*value = data
+		case *string:
+			*value = string(data)
+		default:
+			err = json.Unmarshal(data, v)
+		}
 	}
 
 	return err
