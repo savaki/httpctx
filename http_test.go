@@ -117,6 +117,8 @@ func TestGet(t *testing.T) {
 	var elapsed int64
 	var delay time.Duration
 	var result map[string]string
+	var data []byte
+	var content string
 
 	Convey("Given a responsive site", t, func() {
 		err = nil
@@ -135,6 +137,30 @@ func TestGet(t *testing.T) {
 
 			Convey("And I expect my response back", func() {
 				So(result, ShouldResemble, body)
+			})
+		})
+
+		Convey("When I call GET with a []byte response", func() {
+			err = NewClient().Get(context.Background(), "http://www.google.com", nil, &data)
+
+			Convey("Then I expect no errors", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("And I expect the data to be populated", func() {
+				So(string(data), ShouldEqual, `{"hello":"world"}`)
+			})
+		})
+
+		Convey("When I call GET with a string response", func() {
+			err = NewClient().Get(context.Background(), "http://www.google.com", nil, &content)
+
+			Convey("Then I expect no errors", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("And I expect the data to be populated", func() {
+				So(content, ShouldEqual, `{"hello":"world"}`)
 			})
 		})
 

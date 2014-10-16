@@ -171,7 +171,14 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 		err = &ErrorMessage{StatusCode: resp.StatusCode, Data: data}
 
 	} else if v != nil {
-		err = json.Unmarshal(data, v)
+		switch value := v.(type) {
+		case *[]byte:
+			*value = data
+		case *string:
+			*value = string(data)
+		default:
+			err = json.Unmarshal(data, v)
+		}
 	}
 
 	return err
