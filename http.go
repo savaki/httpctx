@@ -2,13 +2,14 @@ package httpctx
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/context"
 	"encoding/json"
 	"errors"
-	. "github.com/savaki/go-debug"
 	"io"
 	"net/http"
 	"net/url"
+
+	"code.google.com/p/go.net/context"
+	. "github.com/savaki/go-debug"
 )
 
 var debug = Debug("httpctx")
@@ -107,10 +108,15 @@ func newRequest(userAgent, method, path string, params *url.Values, payload inte
 		_path = uri.String()
 	}
 
-	req, _ := http.NewRequest(method, _path, body)
+	req, err := http.NewRequest(method, _path, body)
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+
 	return req, nil
 }
 
