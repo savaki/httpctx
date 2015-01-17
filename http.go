@@ -32,6 +32,7 @@ type HttpClient interface {
 	Post(ctx context.Context, path string, body interface{}, v interface{}) error
 	Put(ctx context.Context, path string, body interface{}, v interface{}) error
 	Delete(ctx context.Context, path string) error
+	Do(ctx context.Context, method, path string, params *url.Values, payload interface{}, v interface{}) error
 }
 
 // creates a new HttpClient without authentication
