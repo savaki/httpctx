@@ -1,10 +1,11 @@
 package main
 
 import (
-	"code.google.com/p/go.net/context"
 	"fmt"
-	"github.com/savaki/httpctx"
 	"net/url"
+
+	"code.google.com/p/go.net/context"
+	"github.com/savaki/httpctx"
 )
 
 func main() {

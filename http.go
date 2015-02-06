@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.google.com/p/go.net/context"
 	. "github.com/savaki/go-debug"
+	"golang.org/x/net/context"
 )
 
 var debug = Debug("httpctx")

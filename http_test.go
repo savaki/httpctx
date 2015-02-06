@@ -2,14 +2,15 @@ package httpctx
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/context"
 	"encoding/json"
-	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/net/context"
 )
 
 type mockTransporter struct {
