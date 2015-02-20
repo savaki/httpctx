@@ -29,8 +29,8 @@ func makeTransporterFunc() transporter {
 
 type HttpClient interface {
 	Get(ctx context.Context, path string, params *url.Values, v interface{}) error
-	Post(ctx context.Context, path string, body interface{}, v interface{}) error
-	Put(ctx context.Context, path string, body interface{}, v interface{}) error
+	Post(ctx context.Context, path string, payload interface{}, v interface{}) error
+	Put(ctx context.Context, path string, payload interface{}, v interface{}) error
 	Delete(ctx context.Context, path string) error
 	Do(ctx context.Context, method, path string, params *url.Values, payload interface{}, v interface{}) error
 }
@@ -178,17 +178,23 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 		err = &ErrorMessage{StatusCode: resp.StatusCode, Data: data}
 
 	} else if v != nil {
-		switch value := v.(type) {
-		case *[]byte:
-			*value = data
-		case *string:
-			*value = string(data)
-		default:
-			err = json.Unmarshal(data, v)
-		}
+		err = marshal(data, v)
 	}
 
 	return err
+}
+
+func marshal(data []byte, v interface{}) error {
+	switch value := v.(type) {
+	case *[]byte:
+		*value = data
+	case *string:
+		*value = string(data)
+	default:
+		return json.Unmarshal(data, v)
+	}
+
+	return nil
 }
 
 func ok(statusCode int) bool {
