@@ -46,7 +46,7 @@ func WithAuthFunc(authFunc AuthFunc) HttpClient {
 	}
 }
 
-func WithLoggerFunc(c HttpClient, loggerFunc func(string, ...interface{}) (int, error)) HttpClient {
+func WithLoggerFunc(c HttpClient, loggerFunc func(context.Context, string, ...interface{})) HttpClient {
 	switch v := c.(type) {
 	case *client:
 		v.loggerFunc = loggerFunc
@@ -68,20 +68,20 @@ func WithVerbose(c HttpClient, verbose bool) HttpClient {
 
 type client struct {
 	authFunc   AuthFunc
-	loggerFunc func(string, ...interface{}) (int, error)
+	loggerFunc func(context.Context, string, ...interface{})
 	verbose    bool
 	UserAgent  string
 }
 
-func (h *client) printf(format string, args ...interface{}) {
+func (h *client) printf(ctx context.Context, format string, args ...interface{}) {
 	if h.loggerFunc != nil {
-		h.loggerFunc(format, args...)
+		h.loggerFunc(ctx, format, args...)
 	}
 }
 
-func (h *client) verbosef(format string, args ...interface{}) {
+func (h *client) verbosef(ctx context.Context, format string, args ...interface{}) {
 	if h.verbose {
-		h.printf(format, args...)
+		h.printf(ctx, format, args...)
 	}
 }
 
@@ -162,9 +162,9 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 
 	if h.verbose {
 		if data, err := httputil.DumpRequest(req, true); err == nil {
-			h.verbosef("#--[ BEGIN REQUEST ]------------------------")
-			h.verbosef(string(data))
-			h.verbosef("#--[ END REQUEST ]--------------------------")
+			h.verbosef(ctx, "#--[ BEGIN REQUEST ]------------------------")
+			h.verbosef(ctx, string(data))
+			h.verbosef(ctx, "#--[ END REQUEST ]--------------------------")
 		}
 	}
 
@@ -173,9 +173,9 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 
 		if h.verbose {
 			if data, err := httputil.DumpResponse(resp, true); err == nil {
-				h.verbosef("#--[ BEGIN RESPONSE ]-----------------------")
-				h.verbosef(string(data))
-				h.verbosef("#--[ END RESPONSE ]-------------------------")
+				h.verbosef(ctx, "#--[ BEGIN RESPONSE ]-----------------------")
+				h.verbosef(ctx, string(data))
+				h.verbosef(ctx, "#--[ END RESPONSE ]-------------------------")
 			}
 		}
 
@@ -184,7 +184,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 
 	select {
 	case <-ctx.Done():
-		h.verbosef("request externally canceled")
+		h.verbosef(ctx, "request externally canceled")
 		tr.CancelRequest(req)
 		<-ch
 		err = ctx.Err()
@@ -205,7 +205,7 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 
 	// 2. perform whatever authorization may be required
 	if h.authFunc != nil {
-		h.verbosef("applying authFunc")
+		h.verbosef(ctx, "applying authFunc")
 		req = h.authFunc(req)
 	}
 
@@ -219,7 +219,7 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 	// 4. manually follow a 302 redirect
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
-		h.verbosef("following 302 to %v", location)
+		h.verbosef(ctx, "following 302 to %v", location)
 		return h.Get(ctx, location, nil, v)
 	}
 
