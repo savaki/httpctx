@@ -6,13 +6,11 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 
-	. "github.com/savaki/go-debug"
 	"golang.org/x/net/context"
 )
-
-var debug = Debug("httpctx")
 
 // handles creation of http.Transport instances; provides simple hook that can be overridden for testing
 var newTransporter func() transporter = makeTransporterFunc
@@ -48,9 +46,43 @@ func WithAuthFunc(authFunc AuthFunc) HttpClient {
 	}
 }
 
+func WithLoggerFunc(c HttpClient, loggerFunc func(string, ...interface{}) (int, error)) HttpClient {
+	switch v := c.(type) {
+	case *client:
+		v.loggerFunc = loggerFunc
+		return v
+	default:
+		return c
+	}
+}
+
+func WithVerbose(c HttpClient, verbose bool) HttpClient {
+	switch v := c.(type) {
+	case *client:
+		v.verbose = verbose
+		return v
+	default:
+		return c
+	}
+}
+
 type client struct {
-	authFunc  AuthFunc
-	UserAgent string
+	authFunc   AuthFunc
+	loggerFunc func(string, ...interface{}) (int, error)
+	verbose    bool
+	UserAgent  string
+}
+
+func (h *client) printf(format string, args ...interface{}) {
+	if h.loggerFunc != nil {
+		h.loggerFunc(format, args...)
+	}
+}
+
+func (h *client) verbosef(format string, args ...interface{}) {
+	if h.verbose {
+		h.printf(format, args...)
+	}
 }
 
 // path - a fully qualified http(s) path
@@ -128,15 +160,31 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 	// send the request on a new custom transport; result will be pumped to the ch channel
 	tr := newTransporter()
 
-	debug("%s %s", req.Method, req.URL.String())
+	if h.verbose {
+		if data, err := httputil.DumpRequest(req, true); err == nil {
+			h.verbosef("#--[ BEGIN REQUEST ]------------------------")
+			h.verbosef(string(data))
+			h.verbosef("#--[ END REQUEST ]--------------------------")
+		}
+	}
 
 	go func() {
 		resp, err := tr.RoundTrip(req)
+
+		if h.verbose {
+			if data, err := httputil.DumpResponse(resp, true); err == nil {
+				h.verbosef("#--[ BEGIN RESPONSE ]-----------------------")
+				h.verbosef(string(data))
+				h.verbosef("#--[ END RESPONSE ]-------------------------")
+			}
+		}
+
 		ch <- response{resp: resp, err: err}
 	}()
 
 	select {
 	case <-ctx.Done():
+		h.verbosef("request externally canceled")
 		tr.CancelRequest(req)
 		<-ch
 		err = ctx.Err()
@@ -157,6 +205,7 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 
 	// 2. perform whatever authorization may be required
 	if h.authFunc != nil {
+		h.verbosef("applying authFunc")
 		req = h.authFunc(req)
 	}
 
@@ -170,6 +219,7 @@ func (h *client) Do(ctx context.Context, method, path string, params *url.Values
 	// 4. manually follow a 302 redirect
 	if resp.StatusCode == http.StatusFound {
 		location := resp.Header.Get("Location")
+		h.verbosef("following 302 to %v", location)
 		return h.Get(ctx, location, nil, v)
 	}
 
