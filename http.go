@@ -161,7 +161,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 	tr := newTransporter()
 
 	if h.verbose {
-		if data, err := httputil.DumpRequest(req, true); err == nil {
+		if data, err := httputil.DumpRequest(req, false); err == nil {
 			h.verbosef(ctx, "#--[ BEGIN REQUEST ]------------------------")
 			h.verbosef(ctx, string(data))
 			h.verbosef(ctx, "#--[ END REQUEST ]--------------------------")
@@ -172,7 +172,7 @@ func (h *client) handle(ctx context.Context, req *http.Request) (resp *http.Resp
 		resp, err := tr.RoundTrip(req)
 
 		if h.verbose {
-			if data, err := httputil.DumpResponse(resp, true); err == nil {
+			if data, err := httputil.DumpResponse(resp, false); err == nil {
 				h.verbosef(ctx, "#--[ BEGIN RESPONSE ]-----------------------")
 				h.verbosef(ctx, string(data))
 				h.verbosef(ctx, "#--[ END RESPONSE ]-------------------------")
